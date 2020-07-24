@@ -11,15 +11,15 @@ class GaussianBlur(object):
         self.max = max
         # kernel size is set to be 10% of the image height/width
         self.kernel_size = kernel_size
+        
+        # kernel should be odd
+        if self.kernel_size % 2 == 0:
+            self.kernel_size += 1
 
     def __call__(self, sample):
         sample = np.array(sample)
 
-        # blur the image with a 50% chance
-        prob = np.random.random_sample()
-
-        if prob < 0.5:
-            sigma = (self.max - self.min) * np.random.random_sample() + self.min
-            sample = cv2.GaussianBlur(sample, (self.kernel_size, self.kernel_size), sigma)
+        sigma = (self.max - self.min) * np.random.random_sample() + self.min
+        sample = cv2.GaussianBlur(sample, (self.kernel_size, self.kernel_size), sigma)
 
         return sample

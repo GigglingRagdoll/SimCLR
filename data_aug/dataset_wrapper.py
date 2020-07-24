@@ -1,8 +1,9 @@
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-import torchvision.transforms as transforms
+import torchvision.transforms as T
 from data_aug.gaussian_blur import GaussianBlur
+from data_aug.to_rgb import ToRGB
 from torchvision import datasets
 
 np.random.seed(0)
@@ -20,21 +21,28 @@ class DataSetWrapper(object):
     def get_data_loaders(self):
         data_augment = self._get_simclr_pipeline_transform()
 
-        train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True,
+        train_dataset = datasets.MNIST('./data', train=True, download=True,
                                        transform=SimCLRDataTransform(data_augment))
+        #train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True,
+        #                               transform=SimCLRDataTransform(data_augment))
 
         train_loader, valid_loader = self.get_train_validation_data_loaders(train_dataset)
         return train_loader, valid_loader
 
     def _get_simclr_pipeline_transform(self):
         # get a set of data augmentation transformations as described in the SimCLR paper.
-        color_jitter = transforms.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
-        data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=self.input_shape[0]),
-                                              transforms.RandomHorizontalFlip(),
-                                              transforms.RandomApply([color_jitter], p=0.8),
-                                              transforms.RandomGrayscale(p=0.2),
-                                              GaussianBlur(kernel_size=int(0.1 * self.input_shape[0])),
-                                              transforms.ToTensor()])
+        color_jitter = T.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
+        data_transforms = T.Compose([
+            T.RandomResizedCrop(size=self.input_shape[0]),
+            T.RandomHorizontalFlip(),
+            T.RandomApply([color_jitter], p=0.8),
+            T.RandomGrayscale(p=0.2),
+            ToRGB(),
+            T.RandomApply([
+                GaussianBlur(kernel_size=int(0.1 * self.input_shape[0]))
+            ]),
+            T.ToTensor(),
+        ])
         return data_transforms
 
     def get_train_validation_data_loaders(self, train_dataset):
